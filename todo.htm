@@ -1,0 +1,330 @@
+<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filtered To-Do List</title>
+    <style>
+        /* --- CSS STYLING --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            /* Cool Gradient Theme */
+            background: linear-gradient(135deg, #1e0533, #11011e);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Top Navigation Bar */
+        nav {
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between; /* Pushes items to corners */
+            align-items: center;
+            position: fixed; /* Sticks to top */
+            top: 0;
+            left: 0;
+            background: rgba(255, 255, 255, 0.05); /* Glass effect */
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Top Left Header */
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff; /* Neon Blue */
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Top Right Filter */
+        .filter-container select {
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: none;
+            outline: none;
+            background: #00d4ff;
+            color: #1a1a1a;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .filter-container select:hover {
+            background: #fff;
+        }
+
+        /* Main Content Area */
+        .main-container {
+            margin-top: 15vh; /* Pushes content down from top */
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Centered Add Bar */
+        .input-group {
+            display: flex;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            padding: 5px;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+            margin-bottom: 30px;
+        }
+
+        .input-group input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 15px 20px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .input-group button {
+            background: #00d4ff;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 30px;
+            color: #1e0533;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .input-group button:hover {
+            transform: scale(1.05);
+            background: #fff;
+        }
+
+        /* The List */
+        ul {
+            list-style: none;
+            width: 100%;
+        }
+
+        .todo-item {
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between; /* Space between text and buttons */
+            align-items: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .todo-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .todo-item li {
+            flex: 1;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* Completed State */
+        .todo-item.completed {
+            opacity: 0.5;
+            text-decoration: line-through;
+            border-color: #00d4ff;
+        }
+
+        /* Action Buttons (Check and Trash) */
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-check, .btn-trash {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+            transition: 0.2s;
+        }
+
+        .btn-check { color: #00ff88; } /* Green check */
+        .btn-trash { color: #ff4757; } /* Red trash */
+
+        .btn-check:hover, .btn-trash:hover {
+            transform: scale(1.2);
+        }
+
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">MY TODO LIST</div> <div class="filter-container"> <select class="filter-todo">
+                <option value="all">All</option>
+                <option value="completed">Completed</option>
+                <option value="uncompleted">Not Done</option>
+            </select>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        
+        <div class="input-group">
+            <input type="text" class="todo-input" placeholder="What needs to be done?">
+            <button class="todo-button" type="submit">Add</button>
+        </div>
+
+        <ul class="todo-list">
+            </ul>
+    </div>
+
+    <script>
+        // --- JAVASCRIPT LOGIC ---
+
+        // Selectors
+        const todoInput = document.querySelector('.todo-input');
+        const todoButton = document.querySelector('.todo-button');
+        const todoList = document.querySelector('.todo-list');
+        const filterOption = document.querySelector('.filter-todo');
+
+        // Event Listeners
+        todoButton.addEventListener('click', addTodo);
+        todoList.addEventListener('click', deleteCheck);
+        filterOption.addEventListener('change', filterTodo);
+        
+        // Allow "Enter" key to add task
+        todoInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                addTodo(event);
+            }
+        });
+
+        // Functions
+        function addTodo(event) {
+            // Prevent form from submitting (if inside a form tag)
+            event.preventDefault();
+
+            // Check if empty
+            if(todoInput.value === "") return;
+
+            // Create Todo DIV
+            const todoDiv = document.createElement("div");
+            todoDiv.classList.add("todo-item");
+
+            // Create List Item (Text)
+            const newTodo = document.createElement("li");
+            newTodo.innerText = todoInput.value;
+            newTodo.classList.add('todo-item-text');
+            todoDiv.appendChild(newTodo);
+
+            // Create Buttons Container
+            const actionDiv = document.createElement("div");
+            actionDiv.classList.add("actions");
+
+            // Check Mark Button
+            const completedButton = document.createElement("button");
+            completedButton.innerHTML = '&#10003;'; // Checkmark symbol
+            completedButton.classList.add("btn-check");
+            actionDiv.appendChild(completedButton);
+
+            // Trash Button
+            const trashButton = document.createElement("button");
+            trashButton.innerHTML = '&#10007;'; // X symbol
+            trashButton.classList.add("btn-trash");
+            actionDiv.appendChild(trashButton);
+
+            todoDiv.appendChild(actionDiv);
+
+            // Append to List
+            todoList.appendChild(todoDiv);
+
+            // Clear Input
+            todoInput.value = "";
+        }
+
+        function deleteCheck(e) {
+            const item = e.target;
+
+            // Delete Todo
+            if (item.classList.contains("btn-trash")) {
+                const todo = item.parentElement.parentElement;
+                // Add fade out animation
+                todo.style.opacity = '0';
+                todo.style.transform = 'translateX(20px)';
+                // Wait for animation then remove
+                setTimeout(() => {
+                    todo.remove();
+                    // Re-run filter to ensure list stays correct
+                    const currentFilter = filterOption.value;
+                    filterTodo({target: {value: currentFilter}}); 
+                }, 300);
+            }
+
+            // Check Mark
+            if (item.classList.contains("btn-check")) {
+                const todo = item.parentElement.parentElement;
+                todo.classList.toggle("completed");
+                
+                // Refresh filter view immediately
+                const currentFilter = filterOption.value;
+                // This small delay ensures the visual toggle happens before filtering
+                setTimeout(() => {
+                     // We trigger the filter function manually to hide it if necessary
+                     // based on current filter selection
+                     const event = { target: filterOption };
+                     filterTodo(event);
+                }, 100);
+            }
+        }
+
+        function filterTodo(e) {
+            const todos = todoList.childNodes;
+            
+            todos.forEach(function(todo) {
+                // Check if it's an element node (to avoid text nodes)
+                if(todo.nodeType === 1){ 
+                    switch (e.target.value) {
+                        case "all":
+                            todo.style.display = "flex";
+                            break;
+                        case "completed":
+                            if (todo.classList.contains("completed")) {
+                                todo.style.display = "flex";
+                            } else {
+                                todo.style.display = "none";
+                            }
+                            break;
+                        case "uncompleted":
+                            if (!todo.classList.contains("completed")) {
+                                todo.style.display = "flex";
+                            } else {
+                                todo.style.display = "none";
+                            }
+                            break;
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
